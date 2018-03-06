@@ -5,7 +5,7 @@ class AssetsManifestPlugin {
   // eslint-disable-next-line class-methods-use-this
   apply(compiler) {
     const onCompilation = (compilation) => {
-      compilation.plugin('additional-assets', (cb) => {
+      const additionalAssetsHook = (cb) => {
         const storage = assetsSingleton.getStorage();
         storage.emittedFiles.forEach((item) => {
           // eslint-disable-next-line no-param-reassign
@@ -15,7 +15,13 @@ class AssetsManifestPlugin {
           };
         });
         cb();
-      });
+      };
+
+      if (compilation.hooks) {
+        compilation.hooks.additionalAssets.tapAsync('AssetsManifestPlugin', additionalAssetsHook);
+      } else {
+        compilation.plugin('additional-assets', additionalAssetsHook);
+      }
     };
 
     const onEmit = (compilation, cb) => {
@@ -23,7 +29,7 @@ class AssetsManifestPlugin {
     };
 
     if (compiler.hooks) {
-      compiler.hooks.emit.tap('AssetsManifestPlugin', onEmit);
+      compiler.hooks.emit.tapAsync('AssetsManifestPlugin', onEmit);
       compiler.hooks.compilation.tap('AssetsManifestPlugin', onCompilation);
     } else {
       compiler.plugin('compilation', onCompilation);

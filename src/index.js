@@ -9,9 +9,7 @@ const storageSingleton = require('./storage-singleton').default;
 module.exports = function fileLoader(content) {
   if (!this.emitFile) throw new Error('emitFile is required from module system');
 
-  const query = loaderUtils.getOptions(this) || {};
-  const configKey = query.config || 'fileLoader';
-  const options = this.options[configKey] || {};
+  const options = loaderUtils.getOptions(this) || {};
 
   const config = {
     publicPath: undefined,
@@ -26,12 +24,7 @@ module.exports = function fileLoader(content) {
     config[attr] = options[attr];
   });
 
-  // query takes precedence over config and options
-  Object.keys(query).forEach((attr) => {
-    config[attr] = query[attr];
-  });
-
-  const context = config.context || this.options.context;
+  const context = options.context || this.rootContext || (this.options && this.options.context);
   let url = loaderUtils.interpolateName(this, config.name, {
     context,
     content,
@@ -41,18 +34,21 @@ module.exports = function fileLoader(content) {
   let outputPath = '';
   if (config.outputPath) {
     // support functions as outputPath to generate them dynamically
-    outputPath = (
-      typeof config.outputPath === 'function' ? config.outputPath(url) : config.outputPath
-    );
+    outputPath = typeof config.outputPath === 'function' ? config.outputPath(url) : config.outputPath;
   }
 
   const filePath = this.resourcePath;
   if (config.useRelativePath) {
-    const issuerContext = this._module && this._module.issuer
-      && this._module.issuer.context || context; // eslint-disable-line no-mixed-operators
-    const relativeUrl = issuerContext && path.relative(issuerContext, filePath).split(path.sep).join('/');
+    const issuerContext = (this._module && this._module.issuer && this._module.issuer.context) || context; // eslint-disable-line no-mixed-operators
+    const relativeUrl =
+      issuerContext &&
+      path
+        .relative(issuerContext, filePath)
+        .split(path.sep)
+        .join('/');
     const relativePath = relativeUrl && `${path.dirname(relativeUrl)}/`;
-    if (~relativePath.indexOf('../')) { // eslint-disable-line no-bitwise
+    if (~relativePath.indexOf('../')) {
+      // eslint-disable-line no-bitwise
       outputPath = path.posix.join(outputPath, relativePath, url);
     } else {
       outputPath = relativePath + url;
@@ -60,7 +56,7 @@ module.exports = function fileLoader(content) {
     url = relativePath + url;
   } else if (config.outputPath) {
     // support functions as outputPath to generate them dynamically
-    outputPath = (typeof config.outputPath === 'function' ? config.outputPath(url) : config.outputPath + url);
+    outputPath = typeof config.outputPath === 'function' ? config.outputPath(url) : config.outputPath + url;
     url = outputPath;
   } else {
     outputPath = url;
@@ -69,14 +65,12 @@ module.exports = function fileLoader(content) {
   let publicPath = `__webpack_public_path__ + ${JSON.stringify(url)}`;
   if (config.publicPath !== undefined) {
     // support functions as publicPath to generate them dynamically
-    publicPath = JSON.stringify(
-      typeof config.publicPath === 'function' ? config.publicPath(url) : config.publicPath + url,
-    );
+    publicPath = JSON.stringify(typeof config.publicPath === 'function' ? config.publicPath(url) : config.publicPath + url);
   }
 
   const storage = storageSingleton.getStorage();
   const { storeFile, storeFileTarget } = config;
-  if (query.emitFile === undefined || query.emitFile) {
+  if (options.emitFile === undefined || options.emitFile) {
     // when storeFile param is passed we don't emit a file
     // but store it to be added added later as an additional asset to a compilation
     // it allows adding these files in a different compilation
