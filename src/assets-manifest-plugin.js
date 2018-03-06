@@ -4,7 +4,7 @@ import assetsSingleton from './storage-singleton';
 class AssetsManifestPlugin {
   // eslint-disable-next-line class-methods-use-this
   apply(compiler) {
-    compiler.hooks.compilation.tap('AssetsManifestPlugin', (compilation) => {
+    const onCompilation = (compilation) => {
       compilation.plugin('additional-assets', (cb) => {
         const storage = assetsSingleton.getStorage();
         storage.emittedFiles.forEach((item) => {
@@ -16,10 +16,19 @@ class AssetsManifestPlugin {
         });
         cb();
       });
-    });
-    compiler.hooks.emit.tap('AssetsManifestPlugin', (compilation, cb) => {
+    };
+
+    const onEmit = (compilation, cb) => {
       cb();
-    });
+    };
+
+    if (compiler.hooks) {
+      compiler.hooks.emit.tap('AssetsManifestPlugin', onEmit);
+      compiler.hooks.compilation.tap('AssetsManifestPlugin', onCompilation);
+    } else {
+      compiler.plugin('compilation', onCompilation);
+      compiler.plugin('emit', onEmit);
+    }
   }
 }
 
