@@ -39,7 +39,8 @@ module.exports = function fileLoader(content) {
 
   const filePath = this.resourcePath;
   if (config.useRelativePath) {
-    const issuerContext = (this._module && this._module.issuer && this._module.issuer.context) || context; // eslint-disable-line no-mixed-operators
+    // eslint-disable-next-line no-mixed-operators
+    const issuerContext = (this._module && this._module.issuer && this._module.issuer.context) || context;
     const relativeUrl =
       issuerContext &&
       path
@@ -47,6 +48,7 @@ module.exports = function fileLoader(content) {
         .split(path.sep)
         .join('/');
     const relativePath = relativeUrl && `${path.dirname(relativeUrl)}/`;
+    // eslint-disable-next-line no-bitwise
     if (~relativePath.indexOf('../')) {
       // eslint-disable-line no-bitwise
       outputPath = path.posix.join(outputPath, relativePath, url);
